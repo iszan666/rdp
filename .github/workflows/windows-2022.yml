@@ -22,7 +22,10 @@ jobs:
 
     - name: Login ke remote.it CLI
       run: |
-        remoteit.exe login --apikey $Env:REMOTEIT_API_KEY
+        $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
+        & $remoteitPath login --apikey $Env:REMOTEIT_API_KEY
+  env:
+    REMOTEIT_API_KEY: ${{ secrets.REMOTEIT_API_KEY }}
 
     - name: Register device (jika belum ada)
       run: |
