@@ -11,36 +11,41 @@ jobs:
       NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
     steps:
-    - name: Download tools
+    - name: Download Ngrok (v3 stable)
       run: |
-        Invoke-WebRequest https://github.com/inconshreveable/ngrok/releases/download/3.9.0/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
+        Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
         Expand-Archive ngrok.zip -DestinationPath ngrok
 
-    - name: Connect Ngrok Account
+    - name: Set Ngrok Auth Token
       run: |
-        .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+        .\ngrok\ngrok.exe config add-authtoken $Env:NGROK_AUTH_TOKEN
 
-    - name: Enable RDP and firewall rules
+    - name: Enable RDP + Firewall
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Creating Tunnel and Showing IP
-      run: .\ngrok\ngrok.exe tcp 3389 --log=stdout
-
-    - name: Show RDP Credentials
+    - name: Start Ngrok Tunnel (RDP)
       run: |
-        $hostname = hostname
-        Write-Output "========================================"
-        Write-Output "RDP is now ready!"
+        Start-Process -FilePath .\ngrok\ngrok.exe -ArgumentList "tcp 3389" -NoNewWindow
+        Start-Sleep -Seconds 10
+
+    - name: Show RDP Info
+      run: |
+        $ngrokInfo = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
+        $publicUrl = $ngrokInfo.tunnels[0].public_url
+        $rdpHost = $publicUrl.Replace("tcp://", "")
+        Write-Output "======================================="
+        Write-Output "RDP is ready!"
+        Write-Output "Connect using:"
+        Write-Output "Host:Port -> $rdpHost"
         Write-Output "Username: administrator"
         Write-Output "Password: JohnTech1234"
-        Write-Output "Use the Ngrok forwarding address from the tunnel"
-        Write-Output "========================================"
+        Write-Output "======================================="
 
     - name: Keep session alive
       run: |
-        for ($i = 0; $i -lt 999; $i++) {
-          Write-Host "RDP Running... Hour $i"
+        for ($i = 0; $i -lt 360; $i++) {
+          Write-Host "⏳ RDP is active... Hour $i"
           Start-Sleep -Seconds 3600
         }
