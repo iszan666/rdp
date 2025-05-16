@@ -1,25 +1,39 @@
+name: Remote.it RDP Setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-remoteit:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    env:
+      REMOTEIT_API_KEY: ${{ secrets.REMOTEIT_API_KEY }}
+
+    steps:
+    - name: Download remote.it installer dari Google Drive
+      run: |
+        curl -L -o remoteit_installer.exe "https://drive.google.com/uc?export=download&id=1uQZqT9xUSV-rsVjtQyo7jbOBYbWQoLTv"
+
+    - name: Install remote.it silently
+      run: |
+        Start-Process -FilePath ".\remoteit_installer.exe" -ArgumentList "/S" -Wait
+
     - name: Login ke remote.it CLI
       shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
         & "$remoteitPath" login --apikey $Env:REMOTEIT_API_KEY
 
-    - name: Daftarkan service RDP di remote.it
+    - name: Daftarkan service RDP TCP 3389 di remote.it
       shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
         & "$remoteitPath" add --name "Windows RDP" --protocol tcp --port 3389 --localport 3389
 
-    - name: List devices dan services remote.it
+    - name: Tampilkan daftar device dan services remote.it
       shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
         & "$remoteitPath" list
-
-    - name: Keep session alive
-      shell: powershell
-      run: |
-        for ($i=0; $i -lt 360; $i++) {
-          Write-Host "Remote.it RDP is active... Hour $i"
-          Start-Sleep -Seconds 3600
-        }
