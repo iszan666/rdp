@@ -25,8 +25,8 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Start Ngrok tunnel
-      run: Start-Process PowerShell -ArgumentList "-NoExit", "-Command", ".\ngrok\ngrok.exe tcp 3389"
+    - name: Creating Tunnel and Showing IP
+  run: .\ngrok\ngrok.exe tcp 3389 --log=stdout
 
     - name: Show RDP Credentials
       run: |
