@@ -1,58 +1,20 @@
-name: Setup Remote.it RDP with Google Drive Installer
-
-on: workflow_dispatch
-
-jobs:
-  build:
-    runs-on: windows-latest
-    timeout-minutes: 360
-
-    env:
-      REMOTEIT_API_KEY: ${{ secrets.REMOTEIT_API_KEY }}
-
-    steps:
-    - name: Download remote.it installer from Google Drive
-      shell: powershell
-      run: |
-        $fileId = "1uQZqT9xUSV-rsVjtQyo7jbOBYbWQoLTv"
-        $downloadUrl = "https://docs.google.com/uc?export=download&id=$fileId"
-
-        # Create temp folder
-        $outPath = "$env:USERPROFILE\remoteit.msi"
-
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $outPath
-
-        Write-Host "Downloaded remote.it installer to $outPath"
-
-    - name: Install remote.it silently
-      shell: powershell
-      run: |
-        $msiPath = "$env:USERPROFILE\remoteit.msi"
-        msiexec.exe /i $msiPath /quiet /norestart
-
     - name: Login ke remote.it CLI
       shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
-        & $remoteitPath login --apikey $Env:REMOTEIT_API_KEY
-
-    - name: Enable RDP + Firewall
-      shell: powershell
-      run: |
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        & "$remoteitPath" login --apikey $Env:REMOTEIT_API_KEY
 
     - name: Daftarkan service RDP di remote.it
       shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
-        & $remoteitPath add --name "Windows RDP" --protocol tcp --port 3389 --localport 3389
+        & "$remoteitPath" add --name "Windows RDP" --protocol tcp --port 3389 --localport 3389
 
     - name: List devices dan services remote.it
       shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
-        & $remoteitPath list
+        & "$remoteitPath" list
 
     - name: Keep session alive
       shell: powershell
