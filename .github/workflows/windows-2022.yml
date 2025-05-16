@@ -26,7 +26,7 @@ jobs:
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
     - name: Creating Tunnel and Showing IP
-  run: .\ngrok\ngrok.exe tcp 3389 --log=stdout
+      run: .\ngrok\ngrok.exe tcp 3389 --log=stdout
 
     - name: Show RDP Credentials
       run: |
