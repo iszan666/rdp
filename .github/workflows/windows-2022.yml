@@ -1,65 +1,57 @@
-name: Free Windows RDP with remote.it
+name: Remote.it RDP Setup
 
 on: workflow_dispatch
 
 jobs:
-  build:
+  setup-rdp:
     runs-on: windows-latest
     timeout-minutes: 360
 
     env:
-      REMOTEIT_API_KEY: ${{ secrets.REMOTEIT_API_KEY }}  # simpan API key di Secrets
+      REMOTEIT_API_KEY: ${{ secrets.REMOTEIT_API_KEY }}   # Masukkan API Key remote.it di Secrets GitHub
+      REMOTEIT_DEVICE_NAME: "github-runner-rdp"
 
     steps:
-    - name: Download remote.it CLI
+    - name: Download remote.it MSI dari Google Drive
       run: |
-        Invoke-WebRequest -Uri https://install.remote.it/windows/latest -OutFile remoteit.msi
+        Invoke-WebRequest -Uri "https://drive.google.com/uc?export=download&id=1uQZqT9xUSV-rsVjtQyo7jbOBYbWQoLTv" -OutFile remoteit.msi
+
+    - name: Install remote.it secara silent
+      run: |
         Start-Process msiexec.exe -ArgumentList '/i', 'remoteit.msi', '/quiet', '/norestart' -Wait
 
-    - name: Enable RDP and Firewall
+    - name: Login ke remote.it CLI
+      run: |
+        remoteit.exe login --apikey $Env:REMOTEIT_API_KEY
+
+    - name: Register device (jika belum ada)
+      run: |
+        $deviceExists = remoteit.exe listdevices | Select-String $Env:REMOTEIT_DEVICE_NAME
+        if (-not $deviceExists) {
+          remoteit.exe adddevice --name $Env:REMOTEIT_DEVICE_NAME
+        }
+
+    - name: Enable RDP dan Firewall Windows
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Log in to remote.it CLI
+    - name: Add RDP service to remote.it device
       run: |
-        & "C:\Program Files\remote.it\remoteit.exe" login --apikey $Env:REMOTEIT_API_KEY
+        # Dapatkan device id
+        $device = remoteit.exe listdevices | Select-String $Env:REMOTEIT_DEVICE_NAME
+        $deviceId = ($device -split '\s+')[0]
 
-    - name: Register RDP Service with remote.it
-      id: register
+        # Tambah service RDP TCP 3389
+        remoteit.exe addservice --deviceid $deviceId --name "RDP" --protocol tcp --port 3389
+
+    - name: List services untuk cek endpoint
       run: |
-        # Daftarkan device dulu (gunakan hostname runner)
-        $deviceName = hostname
-        $device = & "C:\Program Files\remote.it\remoteit.exe" adddevice $deviceName | ConvertFrom-Json
-        $deviceId = $device.id
-
-        # Daftarkan service RDP (TCP port 3389)
-        $service = & "C:\Program Files\remote.it\remoteit.exe" addservice $deviceId --name "Windows RDP" --protocol tcp --port 3389 | ConvertFrom-Json
-
-        # Simpan Service ID ke output
-        Write-Host "::set-output name=serviceId::$($service.id)"
-
-    - name: Get Access Info
-      run: |
-        # List access links
-        $serviceId = '${{ steps.register.outputs.serviceId }}'
-        $links = & "C:\Program Files\remote.it\remoteit.exe" connect $serviceId --json | ConvertFrom-Json
-
-        Write-Output "======================================="
-        Write-Output "RDP is ready via remote.it!"
-        Write-Output "Access Endpoint(s):"
-        foreach ($link in $links.accessLinks) {
-          Write-Output "  Host: $($link.host)"
-          Write-Output "  Port: $($link.port)"
-          Write-Output "  Protocol: $($link.protocol)"
-        }
-        Write-Output "Username: administrator"
-        Write-Output "Password: JohnTech1234"
-        Write-Output "======================================="
+        remoteit.exe listservices
 
     - name: Keep session alive
       run: |
         for ($i=0; $i -lt 360; $i++) {
-          Write-Host "⏳ RDP active... Hour $i"
+          Write-Host "⏳ RDP is active... Hour $i"
           Start-Sleep -Seconds 3600
         }
