@@ -23,7 +23,7 @@ jobs:
           echo ${{ secrets.TAKEN }}
           echo $Env:NGROK_AUTH
         env:
-          NGROK_AUTH: ${{ secrets.2xAqLoaCRPr22YaCjp5SfmP1yk1_7ZeRfNuYfYcsBBtHsRw9M }}
+          NGROK_AUTH: ${{ secrets.TAKEN }}
       - name: Windows10 RDP.
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
