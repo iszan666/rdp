@@ -1,4 +1,4 @@
-name: Setup Remote.it RDP
+name: Setup Remote.it RDP with Google Drive Installer
 
 on: workflow_dispatch
 
@@ -11,42 +11,53 @@ jobs:
       REMOTEIT_API_KEY: ${{ secrets.REMOTEIT_API_KEY }}
 
     steps:
-    - name: Download remote.it MSI installer
-      run: |
-        Invoke-WebRequest -Uri "https://install.remote.it/windows/latest" -OutFile remoteit.msi
+    - name: Download remote.it installer from Google Drive
       shell: powershell
+      run: |
+        $fileId = "1uQZqT9xUSV-rsVjtQyo7jbOBYbWQoLTv"
+        $downloadUrl = "https://docs.google.com/uc?export=download&id=$fileId"
+
+        # Create temp folder
+        $outPath = "$env:USERPROFILE\remoteit.msi"
+
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $outPath
+
+        Write-Host "Downloaded remote.it installer to $outPath"
 
     - name: Install remote.it silently
-      run: msiexec.exe /i remoteit.msi /quiet /norestart
+      shell: powershell
+      run: |
+        $msiPath = "$env:USERPROFILE\remoteit.msi"
+        msiexec.exe /i $msiPath /quiet /norestart
 
     - name: Login ke remote.it CLI
+      shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
         & $remoteitPath login --apikey $Env:REMOTEIT_API_KEY
-      shell: powershell
 
     - name: Enable RDP + Firewall
+      shell: powershell
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-      shell: powershell
 
     - name: Daftarkan service RDP di remote.it
+      shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
         & $remoteitPath add --name "Windows RDP" --protocol tcp --port 3389 --localport 3389
-      shell: powershell
 
-    - name: List devices dan services remote.it (cek service aktif)
+    - name: List devices dan services remote.it
+      shell: powershell
       run: |
         $remoteitPath = "C:\Program Files (x86)\remote.it\remoteit.exe"
         & $remoteitPath list
-      shell: powershell
 
     - name: Keep session alive
+      shell: powershell
       run: |
         for ($i=0; $i -lt 360; $i++) {
           Write-Host "Remote.it RDP is active... Hour $i"
           Start-Sleep -Seconds 3600
         }
-      shell: powershell
